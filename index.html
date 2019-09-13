@@ -1,0 +1,243 @@
+<html>
+	<head>
+		<title>&bull; C4nv45 API &bull;</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+		<link rel="icon" href="favicon.ico" sizes="32x32" type="image/ico">
+		<style>
+			CANVAS {
+				border-color: lightgrey;
+				border-width: 1px;
+				border-style: solid;
+				}
+			H3 {
+				color: gray;
+				font-family: Arial;
+				}
+		</style>
+		<script type="text/javascript">
+
+		var ponto = function (vX,vY){
+			this.xx = vX;
+			this.yy = vY;
+			Object.defineProperties(this, {
+				"x": {
+					"get": function() { return this.xx },
+					"set": function() { this.xx = vX }
+					},
+				"y": {
+					"get": function() { return this.yy },
+					"set": function() { this.yy = vY }
+					}
+				});
+			}
+			// Texto
+			function fTexto(vCtx,ptTxt,vTexto,vCor,vFonte,bFill){
+				xTxt = ptTxt.x;
+				yTxt= ptTxt.y;
+				vCtx.strokeStyle = vCor;
+				vCtx.fillStyle = vCor;
+				vCtx.font = vFonte;
+				if( bFill ){
+					vCtx.fillText(vTexto, xTxt,yTxt);
+					} else {
+					vCtx.strokeText(vTexto, xTxt, yTxt);
+					}
+				}
+			// Arco
+			function fArco(vCtx,ptCentro,vRaio,vIni,vFim,vCor,vCorFill,bAntiHorario){
+				xCentro = ptCentro.x;
+				yCentro = ptCentro.y;				
+				vCtx.strokeStyle = vCor;
+				vCtx.fillStyle = vCorFill;
+				vCtx.beginPath();
+				vCtx.arc(xCentro,yCentro,vRaio,vIni,vFim,bAntiHorario);
+				vCtx.fill();
+				vCtx.stroke();
+				}
+				
+			// Retângulo colorido ou somente borda
+			function fRetangulo(vCtx,pt1,pt2,vCor,bFill){
+				var WIDTH = vCtx.canvas.clientWidth;
+				var HEIGHT = vCtx.canvas.clientHeight;
+				xSup = pt1.x;
+				ySup = HEIGHT-pt2.y;
+				xInf = pt2.x;
+				yInf = HEIGHT-pt1.y;
+				if( bFill ){
+					vCtx.fillStyle = vCor;
+					vCtx.fillRect(xSup,ySup,xInf,yInf);
+					} else {
+					vCtx.strokeStyle = vCor;
+					vCtx.strokeRect(xSup,ySup,xInf,yInf);
+					}
+				}
+			// Polígono de 4 lados
+			function fPolygon4(vCtx, pt1, pt2, pt3, pt4, vColor) {
+				x1 = pt1.x;
+				y1 = pt1.y;
+				x2 = pt2.x;
+				y2 = pt2.y;
+				x3 = pt3.x;
+				y3 = pt3.y;
+				x4 = pt4.x;
+				y4 = pt4.y;
+				vCtx.fillStyle = vColor;
+				vCtx.beginPath();
+				vCtx.moveTo(x1, y1);
+				vCtx.lineTo(x2, y2);
+				vCtx.lineTo(x3, y3);
+				vCtx.lineTo(x4, y4);
+				vCtx.closePath();
+				vCtx.fill();
+				}
+			// Trapézio
+			function fTrapezio(vCtx, pt1,vBaseMin,vBaseMax, vAltura, vColor) {
+				var WIDTH = vCtx.canvas.clientWidth;
+				var HEIGHT = vCtx.canvas.clientHeight;
+				x1 = pt1.x;
+				y1 = HEIGHT - pt1.y;
+				x2 = x1+(vBaseMax-vBaseMin)/2;
+				y2 = y1-vAltura;
+				x3 = x2+vBaseMin;
+				y3 = y2;
+				x4 = x1+vBaseMax;
+				y4 = y1;
+				if( x3 < x2 ) {
+					var xMedio = (x4+x1)/2;
+					x2 = xMedio;
+					x3 =xMedio;
+					}
+				vCtx.fillStyle = vColor;
+				vCtx.beginPath();
+				vCtx.moveTo(x1, y1);
+				vCtx.lineTo(x2, y2);
+				vCtx.lineTo(x3, y3);
+				vCtx.lineTo(x4, y4);
+				vCtx.closePath();
+				vCtx.fill();
+				}
+			// Objeto Trapezio
+			function trapezio(ctx, pto1, vBaseMin,vBaseMax, vAltura, vColor){
+				this.contexto = ctx;
+				this.ponto1 = pto1;
+				this.BaseMin = vBaseMin;
+				this.BaseMax = vBaseMax;
+				this.Altura = vAltura;
+				this.color = vColor;
+				}
+			// Inicialização - Garante que toda a página esteja carregada
+			function init(){
+				let cv = document.querySelector("#cv1");
+				let ctx = cv.getContext('2d');
+				var dx;
+				// Dimensões do Canvas
+				const WIDTH = ctx.canvas.clientWidth;
+				const HEIGHT = ctx.canvas.clientHeight;
+				// Razão entre Base Máxima e Base Mínima
+				const LARGURA_RELATIVA = 1.025;
+				// Altura inicial dos trapézios
+				const ALTURA_INI =50;
+				// Variação de altura dos trapézios
+				var dH = 4;
+				// Base mínima e máxima
+				const BASEMAX_INI = WIDTH/LARGURA_RELATIVA;
+				const BASEMIN_INI = BASEMAX_INI-ALTURA_INI;
+				// Cálculo do X inicial à esquerda
+				var X_INI = (WIDTH-BASEMAX_INI)/2;
+				// Cálculo do X médio para as faixas brancas
+				var X_MEDIO = WIDTH/2;
+
+				var somaH = 0;
+				var indTrapezios = 0;
+				var TRAPEZIOS = [];
+				// Primeiro Ponto
+				var pto1 = new ponto(X_INI,0);
+				// Bases iniciais do primeiro trapézio
+				var vBaseMin = BASEMIN_INI;
+				var vBaseMax = BASEMAX_INI;
+				// Cálculo das variações das bases do trapézio
+				dx = (vBaseMax - vBaseMin)/2;
+				// Cálculo da posição da faixa branca  da pista
+				var X_MEDIO_INI = X_MEDIO - dx/4;
+				// Altura inicial do primeiro trapézio
+				var vAltura = ALTURA_INI;
+				// Par de cores das raias
+				vColorOri = 'green'; vColorComp = 'lightgreen';
+				var vColor = vColorOri; 
+				// Preenche o array de trapézios até onde os limites de altura, relação de bases e base mínima permitirem
+				while( vAltura > dH && vBaseMin > 0 &&  vBaseMax > vBaseMin ){
+					TRAPEZIOS.push(new trapezio(ctx, pto1, vBaseMin,vBaseMax, vAltura, vColor));
+					// Soma as altura para colocar, posteriormente, o fundo
+					somaH += vAltura;
+					// Deslocamento no eixo x dos trapézios
+					dx = (vBaseMax - vBaseMin)/2;
+					pto1 = new ponto(pto1.x +dx,pto1.y + vAltura);
+					// calcula os parâmetros para o próximo loop
+					vBaseMax = vBaseMin;vBaseMin = vBaseMin - vAltura;  vAltura =vAltura - dH;
+					// Varia cor das raias
+					if( vColor == vColorOri ) {
+						vColor = vColorComp;
+						} else {
+						vColor = vColorOri;
+						}
+					}
+				// Prepara a colocação das faixas com os limites da pista
+				var pt1 = new ponto(0,0);var pt2 = new ponto(WIDTH,somaH); 
+				var pontoIni;
+				var BaseMax,BaseMin;
+				vColorOri = 'gray'; vColorComp = 'lightgrey';
+				var vColor = vColorComp; 
+				fRetangulo(ctx,pt1,pt2,'yellowgreen',true);
+				var pt3 = new ponto(0,0); var pt4 = new ponto(0,0);
+				SomaH = 0;
+				var corFaixa = "white";
+				// Gera a pista
+				for( trap in TRAPEZIOS ){
+					fTrapezio(TRAPEZIOS[trap].contexto, TRAPEZIOS[trap].ponto1, TRAPEZIOS[trap].BaseMin,TRAPEZIOS[trap].BaseMax, TRAPEZIOS[trap].Altura, TRAPEZIOS[trap].color);
+					dx = (TRAPEZIOS[trap].BaseMax - TRAPEZIOS[trap].BaseMin)/2;
+					SomaH += TRAPEZIOS[trap].Altura;
+					pontoIni = TRAPEZIOS[trap].ponto1;
+					BaseMax = TRAPEZIOS[trap].BaseMax;
+					BaseMin = TRAPEZIOS[trap].BaseMin;
+					pt1 = new ponto(pontoIni.x-dx,HEIGHT - pontoIni.y);
+					pt2 = new ponto(pontoIni.x,HEIGHT - SomaH);
+					pt3 = new ponto(pontoIni.x+dx,pt2.y);
+					pt4 = new ponto(pontoIni.x,pt1.y);
+					// Varia cor das raias
+					if( vColor == vColorOri ) {
+						vColor = vColorComp;
+						} else {
+						vColor = vColorOri;
+						}
+					fPolygon4(ctx, pt1, pt2, pt3, pt4, vColor);
+					pt1 = new ponto(pontoIni.x+BaseMax,HEIGHT - pontoIni.y);
+					pt2 = new ponto(pontoIni.x+BaseMin+dx,HEIGHT - SomaH);
+					pt3 = new ponto(pontoIni.x+BaseMin+2*dx,pt2.y);
+					pt4 = new ponto(pontoIni.x+BaseMax+dx,pt1.y);
+					fPolygon4(ctx, pt1, pt2, pt3, pt4, vColor);
+					// Testa se está na hora de colocar as faixas brancas
+					if( vColor == vColorOri ){
+						corFaixa = 'white';
+						pt1 = new ponto(X_MEDIO_INI,HEIGHT - pontoIni.y);
+						pt2 = new ponto(X_MEDIO_INI,HEIGHT - SomaH);
+						pt3 = new ponto(X_MEDIO_INI+dx/2,pt2.y);
+						pt4 = new ponto(X_MEDIO_INI+dx/2,pt1.y);
+						fPolygon4(ctx, pt1, pt2, pt3, pt4, corFaixa);					
+						}
+					}
+				/*
+					Parar quando vAltura < dH
+				*/
+				// --------------------------------------------------------------------------------
+				cv.addEventListener("mousedown", function(ev){
+					alert("Sc:("+ev.screenX+","+ev.screenY+")-Ef:("+(ev.clientX-cv.offsetLeft)+","+(ev.clientY-cv.offsetTop)+")-Pg:("+ev.pageX+","+ev.pageY+")-Off:("+cv.offsetLeft+","+cv.offsetTop+")");
+					},false); 
+					
+				}
+		</script>
+	</head>
+	<body style="padding-left:0;margin-left:0;" onload="init();">
+		<h3>Canvas context</h3>
+		<canvas style="padding-left:0;margin-left:200;" id="cv1" width=800 height=600></canvas>
+	</body>
+</html>
